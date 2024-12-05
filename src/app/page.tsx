@@ -1,115 +1,184 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
-  DragOverlay,
   DragStartEvent,
+  DragOverlay,
+  pointerWithin,
 } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
+import { nanoid } from "nanoid";
 import Meld from "./components/meld";
 import Card from "./components/card";
 import { CardData } from "./types/cards";
 
-// Define interface for melds object
-interface MeldsState {
-  [key: string]: CardData[];
-}
+const getColor = (suit: string) =>
+  ["Hearts", "Diamonds"].includes(suit) ? "Red" : "Black";
 
 export default function Home() {
-  const [melds, setMelds] = useState<MeldsState>({
-    "meld-1": [
-      { rank: "Queen", suit: "Diamonds", isFaceUp: true },
-      { rank: "Queen", suit: "Spades", isFaceUp: true },
-      { rank: "Queen", suit: "Hearts", isFaceUp: true },
-    ],
-    "meld-2": [
-      { rank: "Queen", suit: "Clubs", isFaceUp: true },
-      { rank: "Jack", suit: "Clubs", isFaceUp: true },
-      { rank: 10, suit: "Clubs", isFaceUp: true },
-      { rank: 9, suit: "Clubs", isFaceUp: true },
-    ],
+  const [availableCards, setAvailableCards] = useState<CardData[]>([]);
+  const [melds, setMelds] = useState<{ [key: string]: CardData[] }>({
+    meld1: [],
+    meld2: [],
   });
-
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
+
+  useEffect(() => {
+    setAvailableCards([
+      { id: nanoid(), rank: "Ace", suit: "Spades", isFaceUp: true },
+      { id: nanoid(), rank: "Ace", suit: "Clubs", isFaceUp: true },
+      { id: nanoid(), rank: "Ace", suit: "Diamonds", isFaceUp: true },
+      { id: nanoid(), rank: "Ace", suit: "Hearts", isFaceUp: true },
+      { id: nanoid(), rank: 2, suit: "Hearts", isFaceUp: true },
+      { id: nanoid(), rank: 3, suit: "Hearts", isFaceUp: true },
+      { id: nanoid(), rank: 4, suit: "Hearts", isFaceUp: true },
+    ]);
+  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const [meldId, cardIndex] = active.id.toString().split("-card-");
-    setActiveId(active.id.toString());
-    setActiveCard(melds[meldId][parseInt(cardIndex)]);
+    const allCards = [...availableCards, ...Object.values(melds).flat()];
+    const draggedCard = allCards.find((card) => card.id === active.id);
+    if (draggedCard) {
+      setActiveCard(draggedCard);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
-    if (!over) {
-      setActiveId(null);
-      setActiveCard(null);
-      return;
-    }
-
-    const [sourceMeldId, sourceCardIndex] = active.id
-      .toString()
-      .split("-card-");
-    const [targetMeldId, targetCardIndex] = over.id.toString().split("-card-");
-
-    if (sourceMeldId === targetMeldId && sourceCardIndex === targetCardIndex) {
-      setActiveId(null);
-      setActiveCard(null);
-      return;
-    }
-
-    setMelds((prevMelds: MeldsState) => {
-      const newMelds: MeldsState = { ...prevMelds };
-      const sourceMeld = [...newMelds[sourceMeldId]];
-      const [movedCard] = sourceMeld.splice(parseInt(sourceCardIndex), 1);
-
-      if (sourceMeldId === targetMeldId) {
-        // Simply insert the card at the target position without reordering
-        sourceMeld.splice(parseInt(targetCardIndex), 0, movedCard);
-        newMelds[sourceMeldId] = sourceMeld;
-      } else {
-        // Moving card between melds - insert at the target position
-        const targetMeld = [...newMelds[targetMeldId]];
-        if (parseInt(targetCardIndex) >= targetMeld.length) {
-          // If dropping at the end, push to array
-          targetMeld.push(movedCard);
-        } else {
-          // Otherwise insert at the specific position
-          targetMeld.splice(parseInt(targetCardIndex), 0, movedCard);
-        }
-        newMelds[sourceMeldId] = sourceMeld;
-        newMelds[targetMeldId] = targetMeld;
-      }
-
-      return newMelds;
-    });
-
-    setActiveId(null);
     setActiveCard(null);
+
+    if (!over) return;
+
+    // Dragging from available cards to a meld
+    if (
+      (over.id === "meld1" || over.id === "meld2") &&
+      availableCards.some((card) => card.id === active.id)
+    ) {
+      const draggedCard = availableCards.find((card) => card.id === active.id);
+      if (draggedCard) {
+        setAvailableCards((prev) =>
+          prev.filter((card) => card.id !== active.id)
+        );
+        setMelds((prev) => ({
+          ...prev,
+          [over.id]: [...prev[over.id], draggedCard],
+        }));
+      }
+      return;
+    }
+
+    // Dragging between melds
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sourceMeldId = Object.entries(melds).find(([_, cards]) =>
+      cards.some((card) => card.id === active.id)
+    )?.[0];
+
+    if (sourceMeldId && (over.id === "meld1" || over.id === "meld2")) {
+      const draggedCard = melds[sourceMeldId].find(
+        (card) => card.id === active.id
+      );
+      if (draggedCard && sourceMeldId !== over.id) {
+        setMelds((prev) => ({
+          ...prev,
+          [sourceMeldId]: prev[sourceMeldId].filter(
+            (card) => card.id !== active.id
+          ),
+          [over.id]: [...prev[over.id], draggedCard],
+        }));
+      }
+      return;
+    }
+
+    // Reordering within a meld
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const meldId = Object.entries(melds).find(([_, cards]) =>
+      cards.some((card) => card.id === over.id)
+    )?.[0];
+
+    if (meldId && active.id !== over.id) {
+      const oldIndex = melds[meldId].findIndex((card) => card.id === active.id);
+      const newIndex = melds[meldId].findIndex((card) => card.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        setMelds((prev) => ({
+          ...prev,
+          [meldId]: arrayMove(prev[meldId], oldIndex, newIndex),
+        }));
+      }
+    }
   };
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="w-full h-full flex justify-center items-center gap-8">
-        {Object.entries(melds).map(([meldId, cards]) => (
-          <Meld key={meldId} id={meldId} cards={cards} />
-        ))}
+    <DndContext
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      collisionDetection={pointerWithin}
+    >
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "20px",
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Available Cards */}
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          {availableCards.map((card) => (
+            <Card
+              key={card.id}
+              id={card.id}
+              rank={card.rank}
+              suit={card.suit}
+              color={getColor(card.suit)}
+              isFaceUp={card.isFaceUp}
+            />
+          ))}
+        </div>
+
+        {/* Melds */}
+        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+          <Meld id="meld1" cardIds={melds.meld1.map((card) => card.id)}>
+            {melds.meld1.map((card) => (
+              <Card
+                key={card.id}
+                id={card.id}
+                rank={card.rank}
+                suit={card.suit}
+                color={getColor(card.suit)}
+                isFaceUp={card.isFaceUp}
+              />
+            ))}
+          </Meld>
+
+          <Meld id="meld2" cardIds={melds.meld2.map((card) => card.id)}>
+            {melds.meld2.map((card) => (
+              <Card
+                key={card.id}
+                id={card.id}
+                rank={card.rank}
+                suit={card.suit}
+                color={getColor(card.suit)}
+                isFaceUp={card.isFaceUp}
+              />
+            ))}
+          </Meld>
+        </div>
       </div>
 
       <DragOverlay>
-        {activeId && activeCard && (
+        {activeCard ? (
           <Card
+            id={activeCard.id}
             rank={activeCard.rank}
             suit={activeCard.suit}
+            color={getColor(activeCard.suit)}
             isFaceUp={activeCard.isFaceUp}
-            color={
-              ["Spades", "Clubs"].includes(activeCard.suit) ? "Black" : "Red"
-            }
           />
-        )}
+        ) : null}
       </DragOverlay>
     </DndContext>
   );
