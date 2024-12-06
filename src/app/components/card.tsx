@@ -30,6 +30,7 @@ const Card: React.FC<CardProps> = ({ rank, suit, color, isFaceUp, id }) => {
     position: "relative" as const,
     zIndex: isDragging ? 999 : 1,
     touchAction: "none",
+    aspectRatio: "280 / 394",
   };
 
   const suitSymbols: Record<string, string> = {
@@ -145,7 +146,7 @@ const Card: React.FC<CardProps> = ({ rank, suit, color, isFaceUp, id }) => {
         viewBox="0 0 280 394"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-[20vw] max-w-[150px] min-w-[100px]"
+        className="w-full h-auto"
         preserveAspectRatio="xMidYMid meet"
       >
         {cardContent}

@@ -12,36 +12,20 @@ interface MeldProps {
 }
 
 const Meld: React.FC<MeldProps> = ({ id, cardIds, children }) => {
-  const { setNodeRef, isOver } = useDroppable({ id });
+  const { setNodeRef } = useDroppable({ id });
 
   return (
-    <SortableContext items={cardIds} strategy={horizontalListSortingStrategy}>
-      <div
-        ref={setNodeRef}
-        className={`
-          relative
-          p-4
-          min-h-[25vh]
-          min-w-[20vw]
-          rounded-lg
-          border-2
-          border-dashed
-          border-gray-400
-          flex
-          items-center
-          transition-colors
-          ${isOver ? "bg-blue-100" : "bg-white"}
-        `}
-      >
-        <div className="flex -space-x-24">
+    <div ref={setNodeRef}>
+      <SortableContext items={cardIds} strategy={horizontalListSortingStrategy}>
+        <div className="flex items-center -space-x-10">
           {React.Children.map(children, (child) => (
-            <div className="transform transition-transform duration-200 hover:-translate-y-4">
+            <div className="w-[5.4rem] transition-all duration-300 transform hover:-translate-y-4 pointer-events-auto">
               {child}
             </div>
           ))}
         </div>
-      </div>
-    </SortableContext>
+      </SortableContext>
+    </div>
   );
 };
 
