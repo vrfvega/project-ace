@@ -13,6 +13,8 @@ export default function LobbyPage() {
   const playerName = cookies
     .find((c) => c.startsWith("playerName="))
     ?.split("=")[1];
+  const isHost =
+    cookies.find((c) => c.startsWith("host="))?.split("=")[1] === "true";
 
   useEffect(() => {
     if (!connectionAttempted.current && id) {
@@ -31,7 +33,7 @@ export default function LobbyPage() {
     <WaitingRoom
       players={gameState.players}
       code={id as string}
-      isHost={true}
+      isHost={isHost}
       currentPlayerName={playerName}
       onReady={() => sendMessage("toggle_ready")}
     />
