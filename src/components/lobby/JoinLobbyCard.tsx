@@ -28,6 +28,10 @@ const JoinLobbyDialog = ({ open, onOpenChange }: JoinLobbyDialogProps) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
+            placeholder="Enter name"
+            className="bg-emerald-800/50 border-amber-600/20 text-white placeholder:text-emerald-100/50"
+          />
+          <Input
             placeholder="Enter table code"
             className="bg-emerald-800/50 border-amber-600/20 text-white placeholder:text-emerald-100/50"
           />
