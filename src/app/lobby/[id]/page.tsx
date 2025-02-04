@@ -7,25 +7,33 @@ import WaitingRoom from "@/components/lobby/WaitingRoom";
 
 export default function LobbyPage() {
   const { id } = useParams();
-  const { connect, connected, gameState } = useWebSocket();
+  const { connect, connected, gameState, sendMessage } = useWebSocket();
   const connectionAttempted = useRef(false);
+  const cookies = document.cookie.split("; ");
+  const playerName = cookies
+    .find((c) => c.startsWith("playerName="))
+    ?.split("=")[1];
 
   useEffect(() => {
     if (!connectionAttempted.current && id) {
-      const cookies = document.cookie.split("; ");
-      const playerName = cookies
-        .find((c) => c.startsWith("playerName="))
-        ?.split("=")[1];
       if (playerName) {
         connectionAttempted.current = true;
         connect(id as string, playerName);
       }
     }
-  }, [id, connect]);
+  }, [id, connect, playerName]);
 
   if (!connected) {
     return <div>Connecting to lobby...</div>;
   }
 
-  return <WaitingRoom players={gameState.players} code={id as string} />;
+  return (
+    <WaitingRoom
+      players={gameState.players}
+      code={id as string}
+      isHost={true}
+      currentPlayerName={playerName}
+      onReady={() => sendMessage("toggle_ready")}
+    />
+  );
 }
