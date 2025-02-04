@@ -27,5 +27,5 @@ export default function LobbyPage() {
     return <div>Connecting to lobby...</div>;
   }
 
-  return <WaitingRoom players={gameState.players} />;
+  return <WaitingRoom players={gameState.players} code={id as string} />;
 }
